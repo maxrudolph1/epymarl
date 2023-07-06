@@ -34,10 +34,6 @@ class BasicMACGPI:
         chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
         obs = ep_batch['actions']
 
-
-        
-
-
         return chosen_actions
 
     def policy_choices(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
@@ -64,7 +60,7 @@ class BasicMACGPI:
                 agent_outs[reshaped_avail_actions == 0] = -1e10
             agent_outs = th.nn.functional.softmax(agent_outs, dim=-1)
 
-        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
+        return agent_outs.view(ep_batch.batch_size, self.n_agents, self.num_policies, -1)
 
     def init_hidden(self, batch_size):
         self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav

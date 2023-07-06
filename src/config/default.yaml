@@ -19,7 +19,7 @@ use_gpi: True
 policy_embed_size: 6
 policy_mu: 1.0
 policy_sigma: 0.5
-num_policies: 7
+num_policies: 2
 
 # --- Logging options ---
 use_tensorboard: True # Log results to tensorboard

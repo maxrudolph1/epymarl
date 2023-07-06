@@ -81,16 +81,23 @@ class EpsilonGreedyGPIActionSelector():
         if test_mode:
             # Greedy action selection only
             self.epsilon = self.args.evaluation_epsilon
-
+        avail_actions = avail_actions.unsqueeze(2)
+        avail_actions = avail_actions.expand_as(agent_inputs)
+        print(avail_actions.shape)
         # mask actions that are excluded from selection
         masked_q_values = agent_inputs.clone()
         masked_q_values[avail_actions == 0.0] = -float("inf")  # should never be selected!
+        
+        masked_q_values = masked_q_values.max(dim=2)[0] # This is the GPI step. Choose the max q-value for each action over the policies
 
-        random_numbers = th.rand_like(agent_inputs[:, :, 0])
+        avail_actions = avail_actions[:,:,0]
+
+        random_numbers = th.rand_like(masked_q_values[:, :, 0])
         pick_random = (random_numbers < self.epsilon).long()
         random_actions = Categorical(avail_actions.float()).sample().long()
-
-        picked_actions = pick_random * random_actions + (1 - pick_random) * masked_q_values.max(dim=2)[1]
+        picked_actions = pick_random * random_actions + (1 - pick_random) * masked_q_values.max(dim=2)[1] # now each value in the masked_q_values is the max q-value for each action over the policies, \
+                                                                                                          # so we take max over the actions to get the max q-value for each agent          
+        
         return picked_actions
 
 

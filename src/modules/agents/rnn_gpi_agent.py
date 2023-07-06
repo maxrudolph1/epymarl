@@ -32,7 +32,7 @@ class RNNGPIAgent(nn.Module):
         x_z = torch.cat([x, policy_zs], dim=-1).view(-1, x.shape[-1] + policy_zs.shape[-1])
 
         q = self.fc3(x_z)
-        q = q.view(inputs.shape[0], policy_zs.shape[1], -1)[:, 0, :]
-        print(q.shape)
+        q = q.view(inputs.shape[0], policy_zs.shape[1], -1)
+        # print(q.shape)
         return q, h
 
