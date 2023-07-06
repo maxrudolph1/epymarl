@@ -65,7 +65,9 @@ class EpisodeRunner:
             # Pass the entire batch of experiences up till now to the agents
             # Receive the actions for each agent at this timestep in a batch of size 1
             actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
-
+            if self.args.use_gpi:
+                chosen_policies = self.mac.get_chosen_policies()
+                
             reward, terminated, env_info = self.env.step(actions[0])
             if test_mode and self.args.render:
                 self.env.render()
@@ -75,6 +77,7 @@ class EpisodeRunner:
                 "actions": actions,
                 "reward": [(reward,)],
                 "terminated": [(terminated != env_info.get("episode_limit", False),)],
+                "policy": chosen_policies if self.args.use_gpi else None,
             }
 
             self.batch.update(post_transition_data, ts=self.t)

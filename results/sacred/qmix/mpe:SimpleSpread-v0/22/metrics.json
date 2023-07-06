@@ -1,0 +1,79 @@
+{
+  "ep_length_mean": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:07.591650"
+    ],
+    "values": [
+      25.0
+    ]
+  },
+  "epsilon": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:07.591690"
+    ],
+    "values": [
+      1.0
+    ]
+  },
+  "return_mean": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:07.591413"
+    ],
+    "values": [
+      -592.8228099220295
+    ]
+  },
+  "return_std": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:07.591604"
+    ],
+    "values": [
+      0.0
+    ]
+  },
+  "test_ep_length_mean": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:11.999578"
+    ],
+    "values": [
+      25.0
+    ]
+  },
+  "test_return_mean": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:11.999275"
+    ],
+    "values": [
+      -683.1287502115244
+    ]
+  },
+  "test_return_std": {
+    "steps": [
+      25
+    ],
+    "timestamps": [
+      "2023-07-05T15:48:11.999531"
+    ],
+    "values": [
+      129.80211826796898
+    ]
+  }
+}
