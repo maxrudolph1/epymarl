@@ -49,7 +49,7 @@ class QLearnerGPI:
         terminated = batch["terminated"][:, :-1].float()
         mask = batch["filled"][:, :-1].float()
         mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
-        avail_actions = batch["avail_actions"]
+        avail_actions = batch["avail_actions"].unsqueeze(3).repeat(1,1,1,self.args.num_policies, 1) # expand the actions to all policies
         
         if self.args.standardise_rewards:
             self.rew_ms.update(rewards)
@@ -62,10 +62,19 @@ class QLearnerGPI:
             agent_outs = self.mac.forward(batch, t=t)
             mac_out.append(agent_outs)
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
-        # Pick the Q-Values for the actions taken by each agent
-        chosen_action_qvals = th.gather(mac_out[:, :-1], dim=3, index=actions).squeeze(3)  # Remove the last dim
 
+        # find the best Q values for each action across policies
+        
+        
+        # Pick the Q-Values for the actions taken by each agent
+        actions = actions.unsqueeze(3).repeat(1,1,1,self.args.num_policies, 1) # expand the actions to all policies
+
+        chosen_action_qvals = th.gather(mac_out[:, :-1], dim=4, index=actions).squeeze(3)  # Remove the last dim
+        # print(chosen_action_qvals.shape)
+        # print('mac', mac_out[0,0,0,:,:])
+        # print('chosen', chosen_action_qvals[0,0,0,:,:])
         # Calculate the Q-Values necessary for the target
+        
         target_mac_out = []
         self.target_mac.init_hidden(batch.batch_size)
         for t in range(batch.max_seq_length):
@@ -76,6 +85,7 @@ class QLearnerGPI:
         target_mac_out = th.stack(target_mac_out[1:], dim=1)  # Concat across time
 
         # Mask out unavailable actions
+
         target_mac_out[avail_actions[:, 1:] == 0] = -9999999
 
         # Max over target Q-Values
@@ -83,20 +93,31 @@ class QLearnerGPI:
             # Get actions that maximise live Q (for double q-learning)
             mac_out_detach = mac_out.clone().detach()
             mac_out_detach[avail_actions == 0] = -9999999
-            cur_max_actions = mac_out_detach[:, 1:].max(dim=3, keepdim=True)[1]
+            cur_max_actions = mac_out_detach[:, 1:].max(dim=4, keepdim=True)[1]
+
             target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
+
         else:
-            target_max_qvals = target_mac_out.max(dim=3)[0]
+            target_max_qvals = target_mac_out.max(dim=4)[0]
 
         # Mix
         if self.mixer is not None:
-            chosen_action_qvals = self.mixer(chosen_action_qvals, batch["state"][:, :-1])
-            target_max_qvals = self.target_mixer(target_max_qvals, batch["state"][:, 1:])
+            # print(chosen_action_qvals.shape)
+            # print(batch['state'][:,:-1].shape)
+            expanded_batch = batch['state'][:,:-1].unsqueeze(3).repeat(1,1,1,self.args.num_policies,1)
+            # print(expanded_batch.shape)
+            # print(chosen_action_qvals.shape)
+            chosen_action_qvals = self.mixer(chosen_action_qvals, expanded_batch[:, :-1])
+            target_max_qvals = self.target_mixer(target_max_qvals, expanded_batch[:, 1:])
 
         if self.args.standardise_returns:
             target_max_qvals = target_max_qvals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
 
         # Calculate 1-step Q-Learning targets
+        
+        rewards = rewards.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,self.args.num_policies,1)
+        terminated = terminated.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,self.args.num_policies,1)
+
         targets = rewards + self.args.gamma * (1 - terminated) * target_max_qvals.detach()
 
         if self.args.standardise_returns:
@@ -106,6 +127,8 @@ class QLearnerGPI:
         # Td-error
         td_error = (chosen_action_qvals - targets.detach())
 
+        mask = mask.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,self.args.num_policies, 1)
+        # print(mask.shape)
         mask = mask.expand_as(td_error)
 
         # 0-out the targets that came from padded data

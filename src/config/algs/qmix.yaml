@@ -7,7 +7,7 @@ epsilon_finish: 0.05
 epsilon_anneal_time: 50000
 evaluation_epsilon: 0.0
 
-runner: "episode"
+runner: "parallel"
 
 buffer_size: 5000
 

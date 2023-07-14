@@ -83,7 +83,6 @@ class EpsilonGreedyGPIActionSelector():
             self.epsilon = self.args.evaluation_epsilon
         avail_actions = avail_actions.unsqueeze(2)
         avail_actions = avail_actions.expand_as(agent_inputs)
-        print(avail_actions.shape)
         # mask actions that are excluded from selection
         masked_q_values = agent_inputs.clone()
         masked_q_values[avail_actions == 0.0] = -float("inf")  # should never be selected!

@@ -7,7 +7,8 @@ from .maddpg_learner import MADDPGLearner
 from .ppo_learner import PPOLearner
 REGISTRY = {}
 
-REGISTRY["q_learner"] = QLearnerGPI
+REGISTRY["q_learner"] = QLearner
+REGISTRY["q_learner_gpi"] = QLearnerGPI
 REGISTRY["coma_learner"] = COMALearner
 REGISTRY["qtran_learner"] = QTranLearner
 REGISTRY["actor_critic_learner"] = ActorCriticLearner

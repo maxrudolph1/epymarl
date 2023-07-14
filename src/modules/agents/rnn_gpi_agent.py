@@ -13,7 +13,9 @@ class RNNGPIAgent(nn.Module):
         else:
             self.rnn = nn.Linear(args.hidden_dim, args.hidden_dim)
         self.fc2 = nn.Linear(args.hidden_dim, args.hidden_dim)
-        self.fc3 = nn.Linear(args.hidden_dim + args.policy_embed_size, args.n_actions)
+        self.fc3 = nn.Linear(args.hidden_dim + args.policy_hidden_dim , args.n_actions)
+        
+        self.policy_fc = nn.Linear(args.num_policies, args.policy_hidden_dim)
         
 
     def init_hidden(self):
@@ -21,6 +23,7 @@ class RNNGPIAgent(nn.Module):
         return self.fc1.weight.new(1, self.args.hidden_dim).zero_()
 
     def forward(self, inputs, hidden_state, policy_zs):
+        # print(inputs.shape)
         x = F.relu(self.fc1(inputs))
         h_in = hidden_state.reshape(-1, self.args.hidden_dim)
         if self.args.use_rnn:
@@ -28,11 +31,20 @@ class RNNGPIAgent(nn.Module):
         else:
             h = F.relu(self.rnn(x))
         x = self.fc2(h)
-        x = x.unsqueeze(1).expand(-1, policy_zs.shape[1], -1)
-        x_z = torch.cat([x, policy_zs], dim=-1).view(-1, x.shape[-1] + policy_zs.shape[-1])
+        # print(x.shape, policy_zs.shape)
+        x = x.unsqueeze(2).repeat(1, 1, self.args.num_policies, 1) # repeat tensor for all policies (bs, n_agents, n_policies, hidden_dim)
+        x = x.view(-1, x.shape[-1]) # (bs * n_agents * n_policies, hidden_dim)
+        
+        policy_zs = policy_zs.reshape(-1, policy_zs.shape[-1]) # reshape policy from (bs, n_agents, n_policies, policy_dim) to (bs * n_agents * n_policies, policy_dim)
+        z_embed = F.relu(self.policy_fc(policy_zs))
+        
+        # print(x.shape, z_embed.shape)
 
-        q = self.fc3(x_z)
-        q = q.view(inputs.shape[0], policy_zs.shape[1], -1)
+        x = torch.cat([x, z_embed], dim=-1)
+
+        q = self.fc3(x)
+        q = q.view(-1, self.args.num_policies, self.args.n_actions)
+        # q = q[:, 0, :]
         # print(q.shape)
         return q, h
 

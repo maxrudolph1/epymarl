@@ -16,39 +16,55 @@ class BasicMACGPI:
         self.action_selector = action_REGISTRY[args.action_selector](args)
 
         self.hidden_states = None
-        self.policy_mu = args.policy_mu
-        self.policy_sigma = args.policy_sigma
+        # self.policy_mu = args.policy_mu
+        # self.policy_sigma = args.policy_sigma
+        if args.discrete_policies:
+            assert self.args.num_policies == self.args.policy_embed_size
+
         self.num_policies = args.num_policies
         self.cur_policies = None
         self.policy_embed_size = args.policy_embed_size
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
-        print(t_ep)
+
         if t_ep == 0:
             policy_zs = self.policy_choices(ep_batch, t_ep, t_env, bs, test_mode=test_mode)
         else:
             policy_zs = self.cur_policy_z
         avail_actions = ep_batch["avail_actions"][:, t_ep]
-        agent_outputs = self.forward(ep_batch, policy_zs, t_ep, test_mode=test_mode)
+        agent_outputs = self.forward(ep_batch, t_ep, policy_zs=policy_zs, test_mode=test_mode) # policy has not been added to batch yet, so need to pass in as argument
         chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
         obs = ep_batch['actions']
 
         return chosen_actions
 
     def policy_choices(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
-        # policy_vecs = np.repeat(np.eye(self.num_policies)[np.newaxis, :,:], self.n_agents, axis=0)
-        policy_vecs = np.repeat(np.random.random((self.num_policies,self.policy_embed_size))[np.newaxis, :,:], self.n_agents, axis=0)
-        self.cur_policy_z = th.from_numpy(policy_vecs).float().to(self.args.device)
+        # Define a set of policy embeddings. Should be N_agents x N_policies x policy_embed_size
+        # 
+        if self.args.discrete_policies:
+            policy_vecs = np.repeat(np.eye(self.num_policies)[np.newaxis, :,:], self.n_agents, axis=0)
+        else:
+            policy_vecs = np.repeat(np.random.random((self.num_policies,self.policy_embed_size))[np.newaxis, :,:], self.n_agents, axis=0)
+
+        self.cur_policy_z = th.from_numpy(policy_vecs).float().to(self.args.device) # torch of the current policy vectors
+        if ep_batch.batch_size == 1:
+            self.cur_policy_z = self.cur_policy_z.unsqueeze(0)
         return self.cur_policy_z
     
     def get_chosen_policies(self):
         return self.cur_policy_z[np.newaxis, np.newaxis, :,:]
         
 
-    def forward(self, ep_batch, policy_zs, t, test_mode=False):
+    def forward(self, ep_batch, t, policy_zs=None, test_mode=False):
+        
         agent_inputs = self._build_inputs(ep_batch, t)
         avail_actions = ep_batch["avail_actions"][:, t]
+
+        if policy_zs is None:
+            policy_zs = ep_batch["policy"][:, t] # 
+
+
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states, policy_zs)
 
         # Softmax the agent outputs if they're policy logits
@@ -97,7 +113,7 @@ class BasicMACGPI:
         if self.args.obs_agent_id:
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
 
-        inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+        inputs = th.cat([x.reshape(bs, self.n_agents, -1) for x in inputs], dim=1)
         return inputs
 
     def _get_input_shape(self, scheme):
