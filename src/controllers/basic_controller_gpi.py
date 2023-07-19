@@ -33,8 +33,11 @@ class BasicMACGPI:
         else:
             policy_zs = self.cur_policy_z
         avail_actions = ep_batch["avail_actions"][:, t_ep]
-        agent_outputs = self.forward(ep_batch, t_ep, policy_zs=policy_zs, test_mode=test_mode) # policy has not been added to batch yet, so need to pass in as argument
-        chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
+        if not self.args.iterated_gpi:
+            agent_outputs = self.forward(ep_batch, t_ep, policy_zs=policy_zs, test_mode=test_mode) # policy has not been added to batch yet, so need to pass in as argument
+            chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
+        else:
+            pass
         obs = ep_batch['actions']
 
         return chosen_actions

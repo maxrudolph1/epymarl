@@ -11,7 +11,7 @@ import sys
 import torch as th
 from utils.logging import get_logger
 import yaml
-
+import pprint
 from run import run
 
 SETTINGS['CAPTURE_MODE'] = "fd" # set to "no" if you want to see stdout/stderr in console
@@ -31,7 +31,6 @@ def my_main(_run, _config, _log):
     np.random.seed(config["seed"])
     th.manual_seed(config["seed"])
     config['env_args']['seed'] = config["seed"]
-
     # run the framework
     run(_run, config, _log)
 
@@ -111,7 +110,5 @@ if __name__ == '__main__':
     # ex.observers.append(MongoObserver(db_name="marlbench")) #url='172.31.5.187:27017'))
     ex.observers.append(FileStorageObserver.create(file_obs_path))
     # ex.observers.append(MongoObserver())
-    print(params)
-    print('\n\n\n\n\n\n')
     ex.run_commandline(params)
 

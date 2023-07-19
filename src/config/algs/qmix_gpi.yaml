@@ -35,7 +35,7 @@ standardise_rewards: True
 agent_output_type: "q"
 learner: "q_learner_gpi"
 double_q: True
-mixer: "vdn"
+mixer: "qmix"
 use_rnn: False
 mixing_embed_dim: 32
 hypernet_layers: 2

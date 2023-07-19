@@ -94,19 +94,21 @@ class QLearnerGPI:
             mac_out_detach = mac_out.clone().detach()
             mac_out_detach[avail_actions == 0] = -9999999
             cur_max_actions = mac_out_detach[:, 1:].max(dim=4, keepdim=True)[1]
-
             target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
-
         else:
             target_max_qvals = target_mac_out.max(dim=4)[0]
 
         # Mix
         if self.mixer is not None:
-            # print(chosen_action_qvals.shape)
-            # print(batch['state'][:,:-1].shape)
-            expanded_batch = batch['state'][:,:-1].unsqueeze(3).repeat(1,1,1,self.args.num_policies,1)
-            # print(expanded_batch.shape)
-            # print(chosen_action_qvals.shape)
+
+            expanded_batch = batch['state'].repeat(self.args.num_policies, 1, 1)
+
+            chosen_action_qvals = chosen_action_qvals.squeeze()
+            target_max_qvals = target_max_qvals.squeeze()
+            
+            chosen_action_qvals = th.cat([chosen_action_qvals[:,:,:,i] for i in range(self.args.num_policies)], dim=0)  # stack all policies in the batch dimension
+            target_max_qvals = th.cat([target_max_qvals[:,:,:,i] for i in range(self.args.num_policies)], dim=0) 
+
             chosen_action_qvals = self.mixer(chosen_action_qvals, expanded_batch[:, :-1])
             target_max_qvals = self.target_mixer(target_max_qvals, expanded_batch[:, 1:])
 
@@ -114,9 +116,11 @@ class QLearnerGPI:
             target_max_qvals = target_max_qvals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
 
         # Calculate 1-step Q-Learning targets
-        
-        rewards = rewards.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,self.args.num_policies,1)
-        terminated = terminated.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,self.args.num_policies,1)
+        # print(target_max_qvals.shape)
+        # print(terminated.shape)
+        # print(rewards.shape)
+        rewards = rewards.repeat(self.args.num_policies,1,1)
+        terminated = terminated.repeat(self.args.num_policies,1,1)
 
         targets = rewards + self.args.gamma * (1 - terminated) * target_max_qvals.detach()
 
@@ -126,8 +130,9 @@ class QLearnerGPI:
 
         # Td-error
         td_error = (chosen_action_qvals - targets.detach())
-
-        mask = mask.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,self.args.num_policies, 1)
+        # print(td_error.shape)
+        # print(mask.shape)
+        mask = mask.repeat(self.args.num_policies, 1,1)
         # print(mask.shape)
         mask = mask.expand_as(td_error)
 

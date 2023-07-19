@@ -45,7 +45,10 @@ def run(_run, _config, _log):
         tb_logs_direc = os.path.join(
             dirname(dirname(abspath(__file__))), "results", "tb_logs"
         )
+        
         tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
+        print(tb_exp_direc)
+        print(_config)
         logger.setup_tb(tb_exp_direc)
 
     # sacred is on by default
@@ -92,7 +95,7 @@ def run_sequential(args, logger):
     args.n_actions = env_info["n_actions"]
     args.state_shape = env_info["state_shape"]
     
-    print(args, '\n\n\n\n\n\n\n')
+
     # Default/Base scheme
     scheme = {
         "state": {"vshape": env_info["state_shape"]},
@@ -109,6 +112,9 @@ def run_sequential(args, logger):
     
     if args.use_gpi:
         scheme["policy"] = {"vshape": (args.num_policies, args.policy_embed_size), "group": "agents"}
+        
+    if args.iterated_gpi:
+        scheme["other_policy"] = {"vshape": (args.policy_embed_size, args.n_agents), "group": "agents"}
         
     groups = {"agents": args.n_agents}
     preprocess = {"actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])}
