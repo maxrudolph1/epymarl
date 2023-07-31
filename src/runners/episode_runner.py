@@ -50,8 +50,8 @@ class EpisodeRunner:
 
         terminated = False
         episode_return = 0
-        self.mac.init_hidden(batch_size=self.batch_size)
 
+        self.mac.init_hidden(batch_size=self.batch_size)
         while not terminated:
 
             pre_transition_data = {
@@ -123,6 +123,8 @@ class EpisodeRunner:
         return self.batch
 
     def _log(self, returns, stats, prefix):
+        print(len(returns))
+        print(len(returns))
         self.logger.log_stat(prefix + "return_mean", np.mean(returns), self.t_env)
         self.logger.log_stat(prefix + "return_std", np.std(returns), self.t_env)
         returns.clear()

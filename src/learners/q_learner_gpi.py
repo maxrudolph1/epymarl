@@ -57,6 +57,7 @@ class QLearnerGPI:
 
         # Calculate estimated Q-Values
         mac_out = []
+        print('train')
         self.mac.init_hidden(batch.batch_size)
         for t in range(batch.max_seq_length):
             agent_outs = self.mac.forward(batch, t=t)

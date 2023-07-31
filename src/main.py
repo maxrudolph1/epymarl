@@ -13,6 +13,7 @@ from utils.logging import get_logger
 import yaml
 import pprint
 from run import run
+from eval.eval import run as run_eval
 
 SETTINGS['CAPTURE_MODE'] = "fd" # set to "no" if you want to see stdout/stderr in console
 logger = get_logger()
@@ -27,12 +28,16 @@ results_path = os.path.join(dirname(dirname(abspath(__file__))), "results")
 @ex.main
 def my_main(_run, _config, _log):
     # Setting the random seed throughout the modules
+    print('asdfasdfasdfadf\n\n')
     config = config_copy(_config)
     np.random.seed(config["seed"])
     th.manual_seed(config["seed"])
     config['env_args']['seed'] = config["seed"]
     # run the framework
-    run(_run, config, _log)
+    if config["eval"]:
+        run_eval(_run, config, _log)
+    else:
+        run(_run, config, _log)
 
 
 def _get_config(params, arg_name, subfolder):
@@ -83,7 +88,16 @@ if __name__ == '__main__':
 
     # Load algorithm and env base configs
     env_config = _get_config(params, "--env-config", "envs")
-    alg_config = _get_config(params, "--config", "algs")
+
+    
+    if np.any(["eval" in param for param in params]):
+        alg_config = _get_config(params, "--config", "eval_algs")
+        alg_config["eval"] = True
+    else:
+        alg_config = _get_config(params, "--config", "algs")
+        alg_config["eval"] = False
+        
+
     # config_dict = {**config_dict, **env_config, **alg_config}
     config_dict = recursive_dict_update(config_dict, env_config)
     config_dict = recursive_dict_update(config_dict, alg_config)
@@ -93,7 +107,7 @@ if __name__ == '__main__':
     except:
         map_name = config_dict["env_args"]["key"]
 
-
+    config_dict["command"] = " ".join(sys.argv)
     # now add all the config to sacred
     ex.add_config(config_dict)
 
@@ -110,5 +124,6 @@ if __name__ == '__main__':
     # ex.observers.append(MongoObserver(db_name="marlbench")) #url='172.31.5.187:27017'))
     ex.observers.append(FileStorageObserver.create(file_obs_path))
     # ex.observers.append(MongoObserver())
+    
     ex.run_commandline(params)
 
