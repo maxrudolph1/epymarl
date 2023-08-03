@@ -46,9 +46,14 @@ def run(_run, _config, _log):
             dirname(dirname(abspath(__file__))), "results", "tb_logs"
         )
         
-        tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
+        if args.name:
+            tb_exp_direc = os.path.join(tb_logs_direc, args.name)
+        # print(tb_logs_direc)
+        else:
+            tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
         print(tb_exp_direc)
         print(_config)
+        print('\n\n\n\n\n')
         logger.setup_tb(tb_exp_direc)
 
     # sacred is on by default

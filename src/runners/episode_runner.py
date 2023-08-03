@@ -123,8 +123,6 @@ class EpisodeRunner:
         return self.batch
 
     def _log(self, returns, stats, prefix):
-        print(len(returns))
-        print(len(returns))
         self.logger.log_stat(prefix + "return_mean", np.mean(returns), self.t_env)
         self.logger.log_stat(prefix + "return_std", np.std(returns), self.t_env)
         returns.clear()

@@ -6,7 +6,7 @@ epsilon_start: 1.0
 epsilon_finish: 0.05
 epsilon_anneal_time: 50000
 evaluation_epsilon: 0.0
-
+batch_size_run: 1 # Number of environments to run in parallel
 runner: "episode"
 
 buffer_size: 5000

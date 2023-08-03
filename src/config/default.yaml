@@ -20,7 +20,7 @@ use_gpi: False # Use GPI
 # --- Logging options ---
 use_tensorboard: True # Log results to tensorboard
 save_model: True # Save the models to disk
-save_model_interval: 50000 # Save models after this many timesteps
+save_model_interval: 200000 # Save models after this many timesteps
 checkpoint_path: "" # Load a checkpoint from this path
 evaluate: False # Evaluate model for test_nepisode episodes and quit (no training)
 render: False # Render the environment when evaluating (only when evaluate == True)
