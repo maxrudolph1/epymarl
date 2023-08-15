@@ -13,10 +13,16 @@ class RNNAgent(nn.Module):
         else:
             self.rnn = nn.Linear(args.hidden_dim, args.hidden_dim)
         self.fc2 = nn.Linear(args.hidden_dim, args.n_actions)
+        self.init_on_device(args.device)
 
     def init_hidden(self):
         # make hidden states on same device as model
         return self.fc1.weight.new(1, self.args.hidden_dim).zero_()
+    
+    def init_on_device(self, device):
+        self.fc1 = self.fc1.to(device)
+        self.fc2 = self.fc2.to(device)
+        self.rnn = self.rnn.to(device)
 
     def forward(self, inputs, hidden_state):
         x = F.relu(self.fc1(inputs))

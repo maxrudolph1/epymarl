@@ -70,9 +70,7 @@ class QLearnerGPI:
         actions = actions.unsqueeze(3).repeat(1,1,1,self.args.num_policies, 1) # expand the actions to all policies
 
         chosen_action_qvals = th.gather(mac_out[:, :-1], dim=4, index=actions).squeeze(3)  # Remove the last dim
-        # print(chosen_action_qvals.shape)
-        # print('mac', mac_out[0,0,0,:,:])
-        # print('chosen', chosen_action_qvals[0,0,0,:,:])
+        
         # Calculate the Q-Values necessary for the target
         
         target_mac_out = []
@@ -91,24 +89,30 @@ class QLearnerGPI:
         # Max over target Q-Values
         if self.args.double_q:
             # Get actions that maximise live Q (for double q-learning)
+            
+            # Q values are of dimension (batch_size, timesteps, num_agents, num_policies, num_actions)
             mac_out_detach = mac_out.clone().detach()
             mac_out_detach[avail_actions == 0] = -9999999
-            cur_max_actions = mac_out_detach[:, 1:].max(dim=4, keepdim=True)[1]
-            target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
+            cur_max_q_vals, cur_max_actions = mac_out_detach[:, 1:].max(dim=4, keepdim=True) # chose the max actions for each policy at t+1
+
+            # For each action above, choose the Q-value from the frozen network according for each policy SEPERATELY
+            # select Q values along the action dimension so we have Q values for each policy
+            target_max_qvals = th.gather(target_mac_out, 4, cur_max_actions).squeeze(3) ## TODO: check if this is correct. The dimension it is searching over is incorrect
+            # target_max_qvals = (batch_size, timesteps-1, num_agents, num_policies)
         else:
             target_max_qvals = target_mac_out.max(dim=4)[0]
 
         # Mix
         if self.mixer is not None:
-
+            
             expanded_batch = batch['state'].repeat(self.args.num_policies, 1, 1)
 
             chosen_action_qvals = chosen_action_qvals.squeeze()
             target_max_qvals = target_max_qvals.squeeze()
-            
-            chosen_action_qvals = th.cat([chosen_action_qvals[:,:,:,i] for i in range(self.args.num_policies)], dim=0)  # stack all policies in the batch dimension
-            target_max_qvals = th.cat([target_max_qvals[:,:,:,i] for i in range(self.args.num_policies)], dim=0) 
 
+            if self.args.num_policies > 1:
+                chosen_action_qvals = th.cat([chosen_action_qvals[:,:,:,i] for i in range(self.args.num_policies)], dim=0)  # stack all policies in the batch dimension
+                target_max_qvals = th.cat([target_max_qvals[:,:,:,i] for i in range(self.args.num_policies)], dim=0) 
             chosen_action_qvals = self.mixer(chosen_action_qvals, expanded_batch[:, :-1])
             target_max_qvals = self.target_mixer(target_max_qvals, expanded_batch[:, 1:])
 
@@ -116,9 +120,6 @@ class QLearnerGPI:
             target_max_qvals = target_max_qvals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
 
         # Calculate 1-step Q-Learning targets
-        # print(target_max_qvals.shape)
-        # print(terminated.shape)
-        # print(rewards.shape)
         rewards = rewards.repeat(self.args.num_policies,1,1)
         terminated = terminated.repeat(self.args.num_policies,1,1)
 
@@ -130,10 +131,9 @@ class QLearnerGPI:
 
         # Td-error
         td_error = (chosen_action_qvals - targets.detach())
-        # print(td_error.shape)
-        # print(mask.shape)
+
         mask = mask.repeat(self.args.num_policies, 1,1)
-        # print(mask.shape)
+
         mask = mask.expand_as(td_error)
 
         # 0-out the targets that came from padded data

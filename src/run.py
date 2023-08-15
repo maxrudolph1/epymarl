@@ -48,12 +48,20 @@ def run(_run, _config, _log):
         
         if args.name:
             tb_exp_direc = os.path.join(tb_logs_direc, args.name)
-        # print(tb_logs_direc)
         else:
             tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
-        print(tb_exp_direc)
-        print(_config)
-        print('\n\n\n\n\n')
+
+        try:
+            old_logs = [file for file in os.listdir(tb_exp_direc) if os.path.isfile(os.path.join(tb_exp_direc, file))]
+            if len(old_logs) > 0:
+                confirmation = input("Are you sure you want to delete old log files? (y/n): ")
+                if confirmation.lower() != 'y':
+                    print("Files were not deleted. Confirmation not received.")
+                    return
+            for log in old_logs:
+                os.remove(os.path.join(tb_exp_direc, log))
+        except:
+            pass
         logger.setup_tb(tb_exp_direc)
 
     # sacred is on by default
@@ -118,8 +126,8 @@ def run_sequential(args, logger):
     if args.use_gpi:
         scheme["policy"] = {"vshape": (args.num_policies, args.policy_embed_size), "group": "agents"}
         
-    if args.iterated_gpi:
-        scheme["other_policy"] = {"vshape": (args.policy_embed_size, args.n_agents), "group": "agents"}
+    # if args.iterated_gpi:
+    #     scheme["other_policy"] = {"vshape": (args.policy_embed_size, args.n_agents), "group": "agents"}
         
     groups = {"agents": args.n_agents}
     preprocess = {"actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])}

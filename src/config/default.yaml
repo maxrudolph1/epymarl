@@ -15,11 +15,16 @@ learner_log_interval: 2000 # Log training stats every {} timesteps
 t_max: 10000 # Stop running after this many timesteps
 use_cuda: True # Use gpu by default unless it isn't available
 buffer_cpu_only: True # If true we won't keep all of the replay buffer in vram
+
+# --- GPI options ---
 use_gpi: False # Use GPI
+num_policies: 1 # Number of policies
+discrete_policies: True # Use discrete policies
+policy_embed_size: 1 # Size of policy embedding
 
 # --- Logging options ---
 use_tensorboard: True # Log results to tensorboard
-save_model: True # Save the models to disk
+save_model: False # Save the models to disk
 save_model_interval: 200000 # Save models after this many timesteps
 checkpoint_path: "" # Load a checkpoint from this path
 evaluate: False # Evaluate model for test_nepisode episodes and quit (no training)

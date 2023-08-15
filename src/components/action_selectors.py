@@ -88,9 +88,8 @@ class EpsilonGreedyGPIActionSelector():
         masked_q_values[avail_actions == 0.0] = -float("inf")  # should never be selected!
 
         masked_q_values, policy_idx = masked_q_values.max(dim=2) # This is the GPI step. Choose the max q-value for each action over the policies
-        # print(masked_q_values)
         avail_actions = avail_actions[:,:,0]
-
+        print(policy_idx)
         random_numbers = th.rand_like(masked_q_values[:, :, 0])
         pick_random = (random_numbers < self.epsilon).long()
         random_actions = Categorical(avail_actions.float()).sample().long()

@@ -21,8 +21,6 @@ obs_last_action: False
 obs_individual_obs: False
 use_gpi: True
 policy_embed_size: 9
-# policy_mu: 1.0
-# policy_sigma: 0.5
 discrete_policies: True
 num_policies: 9
 policy_hidden_dim: 32

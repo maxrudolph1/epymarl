@@ -84,7 +84,9 @@ class QLearner:
             mac_out_detach = mac_out.clone().detach()
             mac_out_detach[avail_actions == 0] = -9999999
             cur_max_actions = mac_out_detach[:, 1:].max(dim=3, keepdim=True)[1]
+
             target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
+
         else:
             target_max_qvals = target_mac_out.max(dim=3)[0]
 
@@ -149,7 +151,7 @@ class QLearner:
                 target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
 
     def cuda(self):
-        self.mac.cuda()
+        
         self.target_mac.cuda()
         if self.mixer is not None:
             self.mixer.cuda()
